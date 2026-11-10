@@ -165,7 +165,58 @@ if(a===0)x.moveTo(a,y);else x.lineTo(a,y)}x.stroke();
 function render(){renderMonitorOnly();let msg='● PARÁMETROS DENTRO DE RANGO',bad=false;if(['vf','asystole','vt'].includes(state.rhythm)){msg='ALARMA: RITMO DE ALTO RIESGO';bad=true}else if(state.spo<90||state.sys<90||state.hr>150||state.hr<40){msg='ALARMA: PARÁMETROS CRÍTICOS';bad=true}else if(state.spo<94||state.sys<100||state.co2>50||state.co2<25)msg='ALERTA: PARÁMETROS ALTERADOS';$('alarm').textContent=msg;$('alarm').style.background=bad?'#56231d':msg.includes('ALERTA')?'#59451b':'#193a2a';setInputs()}
 setInterval(()=>{phase=(phase+2)%10000;['ecg','pleth','cap'].forEach(draw)},100);
 window.addEventListener('resize',()=>['ecg','pleth','cap'].forEach(draw));
-client.auth.onAuthStateChange((_event,session)=>{if(!session){$('app').classList.add('hidden');$('login').classList.remove('hidden')}});
-init();
+client.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;inset:0;background:#0b141c;z-index:99999;display:grid;place-items:center;padding:20px;font-family:Arial;color:white';
+
+    box.innerHTML = `
+      <div style="background:#192a3a;padding:25px;border-radius:12px;width:100%;max-width:380px">
+        <h2>Nueva contraseña</h2>
+        <p>Ingresá tu nueva contraseña.</p>
+        <input id="newPass1" type="password" placeholder="Nueva contraseña" style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box">
+        <input id="newPass2" type="password" placeholder="Repetir contraseña" style="width:100%;padding:12px;margin:8px 0;box-sizing:border-box">
+        <button id="saveNewPass" style="width:100%;padding:12px;background:#168b75;color:white;border:0;border-radius:7px">
+          Guardar contraseña
+        </button>
+        <p id="resetMsg"></p>
+      </div>`;
+
+    document.body.appendChild(box);
+
+    document.getElementById('saveNewPass').onclick = async () => {
+      const p1 = document.getElementById('newPass1').value;
+      const p2 = document.getElementById('newPass2').value;
+      const msg = document.getElementById('resetMsg');
+
+      if (p1.length < 8) {
+        msg.textContent = 'Mínimo 8 caracteres.';
+        return;
+      }
+
+      if (p1 !== p2) {
+        msg.textContent = 'Las contraseñas no coinciden.';
+        return;
+      }
+
+      msg.textContent = 'Guardando...';
+
+      const { error } = await client.auth.updateUser({ password: p1 });
+
+      if (error) {
+        msg.textContent = 'Error: ' + error.message;
+        return;
+      }
+
+      msg.textContent = '¡Contraseña actualizada!';
+      setTimeout(() => location.reload(), 2000);
+    };
+
+  } else if (!session) {
+    $('app').classList.add('hidden');
+    $('login').classList.remove('hidden');
+  }
+});
+  init();
 })();
 </script></body></html>
