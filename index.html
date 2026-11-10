@@ -21,7 +21,11 @@ footer{font-size:11px;color:#91a2af;line-height:1.5;margin-top:15px}
 <h2 style="font-size:17px;margin-top:0">Acceso del instructor</h2><p class="muted">Ingresá con el usuario creado en Supabase Authentication.</p>
 <div class="grid"><label class="field">Correo electrónico<input id="email" type="email" autocomplete="username"></label><label class="field">Contraseña<input id="password" type="password" autocomplete="current-password"></label></div>
 <div class="row" style="margin-top:12px"><button class="primary" id="loginBtn">Ingresar como instructor</button><span id="loginMsg" class="muted"></span></div>
-</section>
+
+<div class="muted" style="margin-top:8px">
+<a href="#" id="forgotPassword">¿Olvidaste tu contraseña?</a>
+</div>
+  </section>
 <section id="app" class="hidden">
 <div class="row" style="justify-content:space-between"><div class="tabs"><button id="instructorTab" class="active">Instructor</button><button id="studentTab">Monitor alumno</button></div><button id="logoutBtn">Cerrar sesión</button></div>
 <section id="instructorPanel" class="panel">
@@ -120,7 +124,20 @@ const {data,error}=await client.auth.signInWithPassword({email:$('email').value.
 if(error){$('loginMsg').textContent='No se pudo ingresar: '+error.message;return}
 user=data.user;$('login').classList.add('hidden');$('app').classList.remove('hidden');await subscribe();showMode('instructor');
 };
-$('logoutBtn').onclick=async()=>{await client.auth.signOut();location.reload()};
+$('forgotPassword').onclick=async(e)=>{
+e.preventDefault();
+const email=$('email').value.trim();
+if(!email){
+$('loginMsg').textContent='Ingresá tu correo electrónico primero.';
+return;
+}
+$('loginMsg').textContent='Enviando correo de recuperación...';
+const {error}=await client.auth.resetPasswordForEmail(email,{
+redirectTo:'https://residenciaemergentenaval.github.io/HNPM-MONITOR/'
+});
+$('loginMsg').textContent=error?'Error: '+error.message:'Revisá tu correo para restablecer la contraseña.';
+};
+  $('logoutBtn').onclick=async()=>{await client.auth.signOut();location.reload()};
 $('instructorTab').onclick=()=>showMode('instructor');$('studentTab').onclick=()=>showMode('student');
 for(const k in ranges)$(ranges[k]).addEventListener('input',e=>{state[k]=k==='temp'?Number(e.target.value):Number(e.target.value);$(k+'v').textContent=state[k]+suffix[k];renderMonitorOnly()});
 $('rhythm').onchange=e=>{state.rhythm=e.target.value;render()};
