@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HNPM Monitor Simulator v0.1</title>
+<style>
+:root{color-scheme:dark;font-family:Arial, sans-serif;background:#0b141c;color:#e8f0f5}
+*{box-sizing:border-box}body{margin:0;padding:18px;max-width:1100px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:21px;margin:0}small,.muted{color:#9aabb8}.tag{background:#173b2b;color:#8cf0b2;padding:6px 9px;border-radius:7px;font-size:12px}
+nav,.buttons{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+button,select,input{font:inherit;border:1px solid #405565;border-radius:7px;padding:9px;background:#172632;color:#edf5fa}
+button{cursor:pointer}button.active{background:#24546c;border-color:#55bce8}
+.panel{background:#111e28;border:1px solid #30424f;border-radius:12px;padding:14px;margin:12px 0}
+.monitor{background:#03090c;border:2px solid #354650;border-radius:12px;padding:15px;font-family:monospace}
+.topline{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #263943;padding-bottom:10px;margin-bottom:14px}
+.vitals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.vital{font-size:clamp(32px,6vw,48px);font-weight:bold;line-height:1.1}.label{font-size:11px;letter-spacing:1px;color:#9aabb8}
+.green{color:#42e78b}.cyan{color:#4bd5ef}.yellow{color:#f5d45b}.purple{color:#d29cff}
+.wave{display:block;width:100%;height:75px;background:#03090c;margin-top:4px}
+.wavebox{margin-top:14px}.bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:1px solid #263943;padding-top:12px;margin-top:12px}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.controls label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#cbd8e0}
+input[type=range]{width:100%;padding:0;accent-color:#4bbce4}
+.hidden{display:none!important}.alarm{text-align:center;margin-top:12px;padding:10px;border-radius:7px;background:#193a2a;color:#a9f0c3;font-size:12px}
+footer{font-size:12px;color:#91a2af;line-height:1.5;margin-top:14px}
+@media(max-width:520px){body{padding:10px}.vitals{gap:12px}.vital{font-size:34px}}
+</style>
+</head>
+<body>
+<header><div><h1>HNPM <span class="cyan">MONITOR SIMULATOR</span></h1><small>Hospital Naval Pedro Mallo · Simulación educativa · V0.1</small></div><span class="tag" id="status">SIMULACIÓN ACTIVA</span></header>
+<nav><button class="active" data-tab="monitor">Monitor del alumno</button><button data-tab="instructor">Panel del instructor</button></nav>
+<section id="monitor">
+<div class="monitor">
+ <div class="topline"><div><div class="label">HOSPITAL NAVAL PEDRO MALLO</div><b>PACIENTE SIMULADO · BOX 01</b></div><div style="text-align:right"><b id="clock">00:00</b><div class="label">ADULTO · SIMULACIÓN</div></div></div>
+ <div class="vitals">
+  <div><div class="label">ECG · II</div><div class="vital green" id="hr">80</div><small>bpm</small></div>
+  <div><div class="label">SpO₂</div><div class="vital cyan" id="spo">98</div><small>%</small></div>
+  <div><div class="label">PANI</div><div class="vital yellow" id="bp">120/80</div><small id="map">PAM 93 mmHg</small></div>
+  <div><div class="label">EtCO₂</div><div class="vital purple" id="co2">35</div><small>mmHg</small></div>
+ </div>
+ <div class="wavebox"><div class="green label">ECG II <span id="ecg-rate"></span></div><canvas class="wave" id="ecg"></canvas></div>
+ <div class="wavebox"><div class="cyan label">PLETISMOGRAFÍA</div><canvas class="wave" id="pleth"></canvas></div>
+ <div class="wavebox"><div class="purple label">CAPNOGRAFÍA</div><canvas class="wave" id="cap"></canvas></div>
+ <div class="bottom"><div><div class="label">FR</div><b id="rr" style="font-size:23px">16</b><small> rpm</small></div><div><div class="label">TEMP</div><b id="temp" style="font-size:23px">36.5</b><small> °C</small></div><div><div class="label">RITMO</div><b id="rhythm-label">Sinusal</b></div></div>
+ <div class="alarm" id="alarm">● PARÁMETROS DENTRO DE RANGO</div>
+</div>
+<p class="muted" style="font-size:12px">Vista del alumno. Los trazados y valores son simulados y no representan mediciones reales.</p>
+</section>
+<section id="instructor" class="panel hidden">
+<h2 style="font-size:17px;margin-top:0">Panel del instructor</h2>
+<div class="controls">
+<label>Frecuencia cardíaca: <b id="hrv">80 bpm</b><input type="range" id="hrRange" min="0" max="220" value="80"></label>
+<label>SpO₂: <b id="spov">98 %</b><input type="range" id="spoRange" min="50" max="100" value="98"></label>
+<label>Presión sistólica: <b id="sysv">120 mmHg</b><input type="range" id="sysRange" min="40" max="220" value="120"></label>
+<label>Presión diastólica: <b id="diav">80 mmHg</b><input type="range" id="diaRange" min="20" max="140" value="80"></label>
+<label>EtCO₂: <b id="co2v">35 mmHg</b><input type="range" id="co2Range" min="0" max="90" value="35"></label>
+<label>Frecuencia respiratoria: <b id="rrv">16 rpm</b><input type="range" id="rrRange" min="0" max="50" value="16"></label>
+<label>Temperatura: <b id="tempv">36.5 °C</b><input type="range" id="tempRange" min="30" max="42" step=".1" value="36.5"></label>
+</div>
+<hr style="border-color:#30424f;margin:18px 0">
+<label style="display:block;margin-bottom:8px">Ritmo cardíaco</label>
+<select id="rhythmSelect" style="width:100%">
+<option value="sinus">Ritmo sinusal</option><option value="af">Fibrilación auricular</option><option value="svt">Taquicardia supraventricular</option><option value="vt">Taquicardia ventricular</option><option value="vf">Fibrilación ventricular</option><option value="asystole">Asistolia</option><option value="brady">Bradicardia sinusal</option>
+</select>
+<h3 style="font-size:14px">Escenarios rápidos</h3>
+<div class="buttons">
+<button data-preset="normal">Normal</button><button data-preset="sepsis">Shock séptico</button><button data-preset="hemorrhage">Shock hemorrágico</button><button data-preset="asthma">Asma grave</button><button data-preset="anaphylaxis">Anafilaxia</button>
+</div>
+<h3 style="font-size:14px">Intervenciones demostrativas</h3>
+<div class="buttons"><button id="oxygen">Oxígeno suplementario</button><button id="fluid">Cristaloides</button><button id="norad">Noradrenalina</button><button id="reset">Restablecer paciente</button></div>
+<p id="feedback" class="muted" style="font-size:12px">Seleccione un escenario o ajuste los parámetros.</p>
+</section>
+<div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><b style="font-size:13px">Control del escenario</b><div class="muted" style="font-size:12px">Reloj de simulación</div></div><div class="buttons" style="margin:0"><button id="pause">Pausar</button><button id="restart">Reiniciar reloj</button></div></div>
+<footer><b>Uso exclusivamente educativo.</b> Este prototipo no es un monitor médico, no está conectado a pacientes ni a hardware, no sustituye equipos clínicos y sus respuestas a intervenciones son ilustrativas, no modelos fisiológicos validados. No utilizar para tomar decisiones asistenciales.</footer>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const s={hr:80,spo:98,sys:120,dia:80,co2:35,rr:16,temp:36.5,rhythm:'sinus',sec:0,paused:false,oxygen:false};
+const names={sinus:'Sinusal',af:'Fibrilación auricular',svt:'TSV',vt:'TV',vf:'FV',asystole:'Asistolia',brady:'Bradicardia'};
+const keys={hr:'hrRange',spo:'spoRange',sys:'sysRange',dia:'diaRange',co2:'co2Range',rr:'rrRange',temp:'tempRange'};
+const suffix={hr:' bpm',spo:' %',sys:' mmHg',dia:' mmHg',co2:' mmHg',rr:' rpm',temp:' °C'};
+function render(){
+$('hr').textContent=s.hr;$('spo').textContent=s.spo;$('bp').textContent=s.sys+'/'+s.dia;$('map').textContent='PAM '+Math.round((s.sys+2*s.dia)/3)+' mmHg';$('co2').textContent=s.co2;$('rr').textContent=s.rr;$('temp').textContent=Number(s.temp).toFixed(1);$('rhythm-label').textContent=names[s.rhythm];$('ecg-rate').textContent=s.hr+' bpm';
+for(const k in keys){$(keys[k]).value=s[k];$(k+'v').textContent=s[k]+suffix[k]}
+$('rhythmSelect').value=s.rhythm;
+let msg='● PARÁMETROS DENTRO DE RANGO',critical=false;
+if(['vf','asystole','vt'].includes(s.rhythm)){msg='ALARMA: RITMO DE ALTO RIESGO';critical=true}
+else if(s.spo<90||s.sys<90||s.hr>150||s.hr<40){msg='ALARMA: PARÁMETROS CRÍTICOS';critical=true}
+else if(s.spo<94||s.sys<100||s.co2>50||s.co2<25)msg='ALERTA: PARÁMETROS ALTERADOS';
+$('alarm').textContent=msg;$('alarm').style.background=critical?'#56231d':msg.includes('ALERTA')?'#59451b':'#193a2a';
+}
+function set(o){Object.assign(s,o);render()}
+Object.keys(keys).forEach(k=>$(keys[k]).addEventListener('input',e=>set({[k]:k==='temp'?Number(e.target.value):+e.target.value})));
+$('rhythmSelect').addEventListener('change',e=>set({rhythm:e.target.value}));
+const presets={
+normal:{hr:80,spo:98,sys:120,dia:80,co2:35,rr:16,temp:36.5,rhythm:'sinus'},
+sepsis:{hr:125,spo:93,sys:82,dia:48,co2:26,rr:28,temp:39,rhythm:'sinus'},
+hemorrhage:{hr:138,spo:94,sys:76,dia:42,co2:24,rr:30,temp:35.5,rhythm:'sinus'},
+asthma:{hr:132,spo:88,sys:125,dia:78,co2:58,rr:34,temp:37,rhythm:'sinus'},
+anaphylaxis:{hr:145,spo:86,sys:70,dia:40,co2:25,rr:30,temp:36,rhythm:'sinus'}};
+document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{set(presets[b.dataset.preset]);$('feedback').textContent='Escenario cargado. Parámetros ilustrativos.'}));
+$('oxygen').onclick=()=>{s.oxygen=!s.oxygen;if(s.oxygen)s.spo=Math.min(100,s.spo+5);$('feedback').textContent=s.oxygen?'Oxígeno simulado: aumento ilustrativo de SpO₂.':'Oxígeno retirado.';render()};
+$('fluid').onclick=()=>{set({sys:Math.min(220,s.sys+12),dia:Math.min(140,s.dia+7)});$('feedback').textContent='Cristaloides: cambio ilustrativo de presión.'};
+$('norad').onclick=()=>{set({sys:Math.min(220,s.sys+20),dia:Math.min(140,s.dia+10)});$('feedback').textContent='Noradrenalina: cambio ilustrativo de presión.'};
+$('reset').onclick=()=>{set(presets.normal);s.oxygen=false;$('feedback').textContent='Paciente restablecido.'};
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));$('monitor').classList.toggle('hidden',b.dataset.tab!=='monitor');$('instructor').classList.toggle('hidden',b.dataset.tab!=='instructor')});
+$('pause').onclick=()=>{s.paused=!s.paused;$('pause').textContent=s.paused?'Reanudar':'Pausar';$('status').textContent=s.paused?'PAUSADO':'SIMULACIÓN ACTIVA'};
+$('restart').onclick=()=>{s.sec=0;clock()};
+function clock(){$('clock').textContent=String(Math.floor(s.sec/60)).padStart(2,'0')+':'+String(s.sec%60).padStart(2,'0')}
+let phase=[0,0,0];
+function draw(id,i){
+const c=$(id),w=Math.max(200,c.clientWidth),h=75,dpr=Math.min(devicePixelRatio||1,2);
+if(c.width!==w*dpr||c.height!==h*dpr){c.width=w*dpr;c.height=h*dpr}
+const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);x.strokeStyle='#142a25';x.lineWidth=.6;
+for(let a=0;a<w;a+=25){x.beginPath();x.moveTo(a,0);x.lineTo(a,h);x.stroke()}for(let a=0;a<h;a+=15){x.beginPath();x.moveTo(0,a);x.lineTo(w,a);x.stroke()}
+x.strokeStyle=['#42e78b','#4bd5ef','#d29cff'][i];x.lineWidth=1.7;x.beginPath();
+for(let a=0;a<w;a++){let p=((a+phase[i]*2)%w)/w*(i===2?Math.max(1,s.rr/5):Math.max(1,s.hr/25));p%=1;let y=h/2;
+if(i===0){if(s.rhythm==='asystole'){}else if(s.rhythm==='vf')y+=Math.sin(a*.4+phase[i])*17+Math.sin(a*.9+phase[i])*8;else if(s.rhythm==='vt')y+=p>.4&&p<.8?Math.sin(p*90+phase[i])*22:0;else if(p>.38&&p<.43)y-=20;else if(p>.43&&p<.46)y+=13;else if(p>.46&&p<.51)y-=2;else if(p>.54&&p<.65)y-=6*Math.sin((p-.54)*Math.PI/.11);else if(s.rhythm==='af')y+=Math.sin(a*.3+phase[i])*3}
+else if(i===1)y-=Math.max(4,(s.spo-50)*.27)*(Math.sin(p*Math.PI*2)+.18*Math.sin(p*Math.PI*4));
+else if(p>.12&&p<.38)y-=24;else if(p>=.38&&p<.47)y-=24-24*(p-.38)/.09;
+if(a===0)x.moveTo(a,y);else x.lineTo(a,y)}
+x.stroke();phase[i]=(phase[i]+2)%w}
+function tick(){if(!s.paused){s.sec++;clock();draw('ecg',0);draw('pleth',1);draw('cap',2)}}
+window.addEventListener('resize',()=>{draw('ecg',0);draw('pleth',1);draw('cap',2)});
+render();clock();['ecg','pleth','cap'].forEach((id,i)=>draw(id,i));setInterval(tick,1000);
+})();
+</script>
+</body></html>
